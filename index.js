@@ -1,17 +1,44 @@
 import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import { Client, Hbar, TransferTransaction, AccountId, PrivateKey } from "@hashgraph/sdk";
 
+dotenv.config();
 const app = express();
+app.use(cors());
+app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("🚀 Hello from Hedera dApp backend! This app is live on Vercel.");
+  res.send("Agritrust Hedera Backend Live 🚀");
 });
 
-app.get("/api/info", (req, res) => {
-  res.json({
-    project: "Agritrust dApp",
-    message: "Welcome to Hedera-powered transparency!",
-  });
+app.post("/transfer", async (req, res) => {
+  try {
+    const { receiverId, amount } = req.body;
+
+    const operatorId = AccountId.fromString(process.env.OPERATOR_ID);
+    const operatorKey = PrivateKey.fromString(process.env.OPERATOR_KEY);
+    const client = Client.forTestnet().setOperator(operatorId, operatorKey);
+
+    const tx = await new TransferTransaction()
+      .addHbarTransfer(operatorId, Hbar.fromTinybars(-amount))
+      .addHbarTransfer(receiverId, Hbar.fromTinybars(amount))
+      .execute(client);
+
+    const receipt = await tx.getReceipt(client);
+    const txId = tx.transactionId.toString();
+
+    res.json({
+      success: true,
+      txId,
+      status: receipt.status.toString(),
+      explorer: `https://hashscan.io/testnet/transaction/${txId}`
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`✅ Server running on port ${port}`));
+app.listen(port, () => console.log(`Server running on port ${port}`));
