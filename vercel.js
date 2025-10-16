@@ -5,19 +5,22 @@ import { Client, Hbar, TransferTransaction, AccountId, PrivateKey } from "@hashg
 
 dotenv.config();
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
+// ✅ Simple test route
 app.get("/", (req, res) => {
   res.send("Agritrust Hedera Backend Live 🚀");
 });
 
+// ✅ Transfer route
 app.post("/transfer", async (req, res) => {
   try {
     const { receiverId, amount } = req.body;
 
     const operatorId = AccountId.fromString(process.env.OPERATOR_ID);
     const operatorKey = PrivateKey.fromString(process.env.OPERATOR_KEY);
+
     const client = Client.forTestnet().setOperator(operatorId, operatorKey);
 
     const tx = await new TransferTransaction()
@@ -40,5 +43,4 @@ app.post("/transfer", async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+export default app;
